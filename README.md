@@ -1,5 +1,7 @@
 # als_eff_meas
 
+[![CI](https://github.com/jamccoy/als_eff_meas/actions/workflows/ci.yml/badge.svg)](https://github.com/jamccoy/als_eff_meas/actions/workflows/ci.yml)
+
 Reduction of Advanced Light Source beamline scans to grating diffraction efficiency.
 
 A grazing-incidence grating in the extreme off-plane (conical) mount disperses orders
@@ -49,17 +51,23 @@ Requires Python 3.12 (pinned in `.python-version`).
 python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 ```
 
+`als_eff_meas.centroids.trap_odr_centroid`, an alternative model-dependent centroid, also
+needs the optional `trapezoid` extra (`pip install -e '.[dev,trapezoid]'`). The reduction
+itself does not use it.
+
 ## Point it at the data
 
 The raw beamline data is **private and not in this repository**. Tell the package where
 it lives:
 
 ```bash
-export ALS_DATA_ROOT=~/Documents/ALS
+export ALS_DATA_ROOT=/path/to/ALS
 ```
 
-The expected layout and file format are in [docs/DATA.md](docs/DATA.md). Without
-`ALS_DATA_ROOT` the package still imports and the data-independent tests still pass.
+The expected layout and file format are in [docs/DATA.md](docs/DATA.md); the tree is
+organised as `<Campaign>/Data/<sample>/{yaw_scans,darks,energy_scans,results}`. If
+`ALS_DATA_ROOT` is unset it falls back to `~/Documents/ALS`. With no data present the
+package still imports and the data-independent tests still pass — the rest skip.
 
 ## Use
 
@@ -101,8 +109,10 @@ breaking it.
 The reduction is pinned to the saved output of the last real run (October 2021, OGRE
 laminar I): **twelve arc, angle and consistency values, and all 249 per-order efficiency
 points**, reproduce to the precision they were originally written at. That baseline is
-what makes a refactor safe — see [docs/VERIFICATION.md](docs/VERIFICATION.md), which
-also records two discrepancies the comparison turned up in the original exclusion logic.
+what makes a refactor safe — see [docs/VERIFICATION.md](docs/VERIFICATION.md), which is
+the evidence, and which also records two things the comparison turned up in the original
+code: exclusion blocks that removed points by array index rather than the energy named
+in their own comments, and a position offset that silently changes exactly one point.
 
 > **A green CI badge does not mean the science was verified.** CI has no beamline data,
 > so it runs the 58 data-independent tests — the physics, the file parsing, the
@@ -118,6 +128,11 @@ specific to the gratings measured — a campaign file is a directory layout, a s
 energies and an assumed throw.
 
 Requests for the underlying measurements should go to the author.
+
+## Citing
+
+Metadata is in [CITATION.cff](CITATION.cff); GitHub's **Cite this repository** button
+renders it as BibTeX or APA.
 
 ## Provenance
 
