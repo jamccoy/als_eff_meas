@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "als_eff_meas"
+version = "0.1.0"
+description = "Reduction of ALS beamline scans to grating diffraction efficiency"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "BSD-3-Clause" }
+authors = [{ name = "Jake McCoy" }]
+keywords = ["diffraction", "grating", "efficiency", "synchrotron", "x-ray", "ALS"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "numpy>=1.26",
+    # Upper bound is deliberate: scipy.odr is deprecated in 1.17 and scheduled
+    # for removal in 1.19. Both the arc fit and the trapezoid centroid use it,
+    # and orthogonal distance regression is not optional here -- both scan
+    # coordinates carry error. Migrating to the standalone `odrpack` package is
+    # the fix; until then, do not let an upgrade silently break the fit.
+    "scipy>=1.11,<1.19",
+    "matplotlib>=3.8",
+    "uncertainties>=3.2",
+]
+
+[project.optional-dependencies]
+# astropy is pulled in solely for Trapezoid1D in the model-dependent centroid
+# path (centroids.trap_odr_centroid). The default flux-weighted centroid does
+# not need it.
+trapezoid = ["astropy>=6.0"]
+dev = ["pytest>=7", "ruff>=0.6"]
+
+[project.urls]
+Homepage = "https://github.com/jamccoy/als_eff_meas"
+Issues = "https://github.com/jamccoy/als_eff_meas/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+als_eff_meas = ["campaigns/*.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+extend-select = ["I", "UP", "B", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Matplotlib's backend must be selected before pyplot is imported, so the
+# imports in the plotting tests cannot all sit at the top of the file.
+"tests/test_plots.py" = ["E402"]

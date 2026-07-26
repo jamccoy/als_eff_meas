@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: als_eff_meas
+message: If you use this software, please cite it.
+type: software
+authors:
+  - family-names: McCoy
+    given-names: Jake A.
+    email: jam1117@psu.edu
+    affiliation: The Pennsylvania State University
+repository-code: https://github.com/jamccoy/als_eff_meas
+abstract: >-
+  Reduction of Advanced Light Source beamline scans to grating diffraction
+  efficiency for gratings in the extreme off-plane (conical) mount at grazing
+  incidence, where diffracted orders fall on an arc rather than a line. Fits the
+  diffraction arc, recovers the mount geometry (cone half-angle, azimuthal
+  incidence, roll, graze and yaw) from the fitted arc and the direct and
+  zero-order beam positions, and measures absolute efficiency per order per
+  photon energy with full uncertainty propagation.
+keywords:
+  - diffraction grating
+  - diffraction efficiency
+  - synchrotron
+  - x-ray optics
+  - off-plane mount
+  - conical diffraction
+  - Advanced Light Source
+license: BSD-3-Clause
+version: 0.1.0

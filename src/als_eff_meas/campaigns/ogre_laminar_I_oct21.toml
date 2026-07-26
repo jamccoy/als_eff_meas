@@ -1,0 +1,93 @@
+name = "ogre_laminar_I_oct21"
+description = """
+OGRE laminar grating I, ALS October 2021. The most recent campaign and the one
+the reduction was last run against; its saved results in <data>/results are the
+verification baseline for this package (see docs/VERIFICATION.md).
+
+Ported from the original per-experiment configuration module. Two of that
+file's four yaw-scan energies and two of its four energy groups were inside
+triple-quote blocks, i.e. inactive at the time of the last run; only the active
+ones appear here. The inactive 600 eV / 800 eV yaw scans and the 260-340 eV /
+360-440 eV groups are therefore deliberately absent.
+"""
+
+[paths]
+data = "October2021/Data/OGRE_laminar_I"
+figures = "October2021/Figures/OGRE_laminar_I"
+
+[instrument]
+# Assumed, not measured: the curvature method for the throw never worked. See
+# geometry.radius_curv_throw.
+throw_mm = [235.0, 2.0]
+detector_width_mm = [10.0, 0.01]
+# The original used this as a bare constant; the computation it replaced had
+# already been commented out, so the value's provenance does not survive in the
+# code that used it. The reduction re-derives it from the measured dispersion as
+# a cross-check and gets 157.8 +/- 2.7 nm, which agrees.
+groove_spacing_nm = [158.0, 0.5]
+peak_step = 10
+
+[arc_fit]
+radius_guess = 50.0
+x_center_guess = 0.0
+y_center_guess = 47.0
+
+[direct_beam]
+dir = "zero_order_scans"
+files = ["dir_beam_x_000001.dat", "dir_beam_x_000002.dat"]
+
+[[yaw_scan]]
+energy_eV = 500
+x_scan = 30
+y_scans = [31, 32, 33, 34]
+meas_x = [-3.6, 0.11, 3.85, 7.6]
+orders = [-1, 0, 1, 2]
+
+[[yaw_scan]]
+energy_eV = 600
+x_scan = 40
+y_scans = [41, 42, 43, 44, 45]
+meas_x = [-3.0, 0.09, 3.2, 6.3, 9.5]
+orders = [-1, 0, 1, 2, 3]
+
+[[energy_group]]
+name = "440-560 eV, 10^7 gain"
+dir = "energy_scans/data_440-560eV-10_7_gain"
+energies = { arange = [440, 560, 20] }
+dark_dir = "darks/dark_seven"
+dark_dig = 1
+
+[[energy_group]]
+name = "560-1220 eV, 10^8 gain"
+dir = "energy_scans/data_560-1220eV-10_8_gain"
+energies = { arange = [560, 1220, 20] }
+dark_dir = "darks/dark_eight"
+dark_dig = 1
+
+[efficiency]
+# als_eff.py:19. Shifts the predicted position of the positive orders to absorb
+# roll. It changes almost nothing -- the centroid search re-finds the true peak
+# either way -- except for order 6 at 1080 eV, a weak order near the arc edge
+# where 0.05 mm is enough to select a different local maximum.
+offset = -0.05
+
+# Orders carried through to the final plots. Order 7 is measured (2 points, at
+# 1180 and 1200 eV) but was never plotted, which is why no
+# results/measured/efficiency_order_7.txt exists.
+plot_orders = [-2, -1, 0, 1, 2, 3, 4, 5, 6]
+
+# Bad points, as [order, energy_eV]. Originally 15 blocks of np.delete, each
+# deleting index *0* rather than the energy named in its own comment. For orders
+# -1, 3, 4, 5 and 6 the two agree, because the deletions were listed in
+# ascending energy and always hit the lowest remaining point. For order -2 they
+# do not: the comments say 900, 920, 940 but the code removed 880, 900, 920. The
+# values below are the ones that actually ran, recovered by diffing an
+# unfiltered run against results/measured/. See docs/VERIFICATION.md.
+exclude = [
+    [-2, 880], [-2, 900], [-2, 920],
+    [-1, 440], [-1, 460],
+    [3, 520],
+    [4, 680], [4, 700],
+    [5, 840], [5, 860], [5, 880], [5, 900],
+    [6, 1020], [6, 1040], [6, 1060],
+]

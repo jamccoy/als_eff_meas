@@ -1,0 +1,45 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.DS_Store
+
+# Regenerable output
+results/
+figures/
+baselines/
+*.png
+*.eps
+*.pdf
+!docs/**/*.pdf
+
+# --- Raw beamline data must never enter this repository. ---
+# The data lives at $ALS_DATA_ROOT (see docs/DATA.md) and is private. The repo
+# is deliberately located outside that tree, so these patterns are a second
+# line of defence, not the first.
+data/
+*.dat
+*.abs
+*.script
+*.script.txt
+*.spm
+*.tif
+*.tiff
+*.zip
+# Public CXRO optical-constant tables are reference data, not measurements.
+!reference/**
+
+# AI coding-agent instruction files and local agent state.
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+.claude/
+.cursor/
+.cursorrules
+.windsurfrules
+.aider*
+.continue/
+.github/copilot-instructions.md

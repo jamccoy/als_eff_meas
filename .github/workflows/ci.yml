@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: python -m pip install -e '.[dev,trapezoid]'
+
+      - name: Lint
+        run: |
+          python -m ruff check src tests
+          python -m ruff format --check src tests
+
+      # No beamline data here -- that is private and stays private. The
+      # baseline tests skip, so this proves the package installs, imports and
+      # passes the physics and parsing tests. It does NOT verify that the
+      # reduction reproduces the 2021 results; see docs/VERIFICATION.md.
+      - name: Test
+        run: python -m pytest -v
+
+      - name: Confirm the baseline tests skipped rather than silently passed
+        run: |
+          python -m pytest -q 2>&1 | tee result.txt
+          grep -qE '[0-9]+ skipped' result.txt \
+            || { echo "expected the data-dependent tests to skip without ALS_DATA_ROOT"; exit 1; }
