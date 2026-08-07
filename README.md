@@ -2,7 +2,8 @@
 
 [![CI](https://github.com/jamccoy/als_eff_meas/actions/workflows/ci.yml/badge.svg)](https://github.com/jamccoy/als_eff_meas/actions/workflows/ci.yml)
 
-Reduction of Advanced Light Source beamline scans to grating diffraction efficiency.
+Reduction of Advanced Light Source beamline scans to grating diffraction efficiency. 
+Used between 2016 and 2020 - this code is messy, so use at your own risk. 
 
 A grazing-incidence grating in the extreme off-plane (conical) mount disperses orders
 onto an **arc**, not a line. Measuring efficiency therefore means finding that arc
