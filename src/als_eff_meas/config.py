@@ -12,12 +12,13 @@ are resolved but not opened. Adding a dataset means adding a file.
 
 from __future__ import annotations
 
-import os
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
+from endstation.paths import data_root as _data_root
+from endstation.paths import require_dir
 from uncertainties import ufloat
 
 __all__ = ["Campaign", "EnergyGroup", "YawScan", "data_root", "list_campaigns", "load_campaign"]
@@ -25,13 +26,22 @@ __all__ = ["Campaign", "EnergyGroup", "YawScan", "data_root", "list_campaigns", 
 _CAMPAIGN_DIR = Path(__file__).parent / "campaigns"
 
 
+#: Where the beamline tree lives when ``$ALS_DATA_ROOT`` says nothing.
+DEFAULT_DATA_ROOT = "~/Documents/ALS"
+
+
 def data_root() -> Path:
     """Root of the private beamline data tree.
 
     From ``$ALS_DATA_ROOT``, defaulting to ``~/Documents/ALS``. The data is not
     in this repository and never will be.
+
+    Deliberately does not check that the directory exists -- that is
+    :meth:`Campaign.check_data_present`'s job. Separating them is what lets a
+    caller ask "where would it be?" in order to name it in a skip message,
+    without first having to handle an exception.
     """
-    return Path(os.environ.get("ALS_DATA_ROOT", Path.home() / "Documents" / "ALS")).expanduser()
+    return _data_root("ALS_DATA_ROOT", DEFAULT_DATA_ROOT)
 
 
 def _uf(pair) -> object:
@@ -121,13 +131,13 @@ class Campaign:
         return self.data / group.dark_dir
 
     def check_data_present(self) -> None:
-        """Raise with a useful message if the private data tree is missing."""
-        if not self.data.is_dir():
-            raise FileNotFoundError(
-                f"campaign data directory not found: {self.data}\n"
-                f"Set ALS_DATA_ROOT to the root of the beamline data tree "
-                f"(currently {data_root()}). See docs/DATA.md."
-            )
+        """Raise with a useful message if the private data tree is missing.
+
+        Naming the variable is the whole point: ``FileNotFoundError: [Errno 2]``
+        on a path the user never typed is unactionable, and every project here
+        had written its own version of this message.
+        """
+        require_dir(self.data, env_var="ALS_DATA_ROOT", hint="docs/DATA.md")
 
 
 def load_campaign(name_or_path) -> Campaign:

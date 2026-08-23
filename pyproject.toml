@@ -28,6 +28,10 @@ dependencies = [
     "scipy>=1.11,<1.19",
     "matplotlib>=3.8",
     "uncertainties>=3.2",
+    # Shared scaffolding: the data-root resolution and the missing-data message
+    # that names the variable. Its core declares `dependencies = []`, so this
+    # adds no transitive weight.
+    "endstation>=0.1",
 ]
 
 [project.optional-dependencies]
