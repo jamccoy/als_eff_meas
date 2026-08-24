@@ -47,6 +47,18 @@ something that looks wrong and is preserved anyway.
 
 Requires Python 3.12 (pinned in `.python-version`).
 
+**First, one prerequisite.** This package depends on
+[`endstation`](https://github.com/jamccoy/endstation), which is not on PyPI yet, so
+`pip` cannot resolve it from the dependency line alone — install it from git once,
+and every command below then works as written:
+
+```bash
+pip install "endstation @ git+https://github.com/jamccoy/endstation.git@v0.1.0"
+```
+
+This step goes away when endstation is published; the dependency line is already
+correct and will need no change.
+
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 ```
