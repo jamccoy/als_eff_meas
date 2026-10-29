@@ -106,11 +106,76 @@ table.to_csv("baselines/ogre_laminar_I_oct21.csv")
 `baselines/` is gitignored — it derives from private data. The eight geometry numbers
 are small enough to live in the test file itself; a full efficiency table is not.
 
+## The second and third campaigns: TASTE, December 2018
+
+`taste_dec18_round3a` (440-800 eV) and `taste_dec18_round3b` (80-420 eV) are the two
+halves of the campaign published as McCoy, McEntaffer & Miles, ApJ 891, 114 (2020). They
+are separate campaigns because each has its own arc fit: the low-energy half was taken
+with the beamline's order sorter inserted, which moved the beam on the grating, and the
+paper says so.
+
+**296 points, every one matching to better than 5e-9** -- 208 in round 3a across orders
+-4 to 8, and 88 in round 3b across -2 to 5. Round 3a's eight geometry numbers reproduce
+at the precision they were saved:
+
+| | baseline | this package |
+|---|---|---|
+| radius | 7.04 +/- 0.12 mm | 7.0359 +/- 0.1242 |
+| x centre | 2.73 +/- 0.05 mm | 2.7331 +/- 0.0478 |
+| y centre | 6.20 +/- 0.14 mm | 6.1971 +/- 0.1425 |
+| gamma | 1.731 +/- 0.032 deg | 1.7304 +/- 0.0323 |
+| alpha | -23.4 +/- 0.6 deg | 23.3925 +/- 0.6098 |
+| roll | -1.17 +/- 0.04 deg | 1.1744 +/- 0.0417 |
+| eta | 1.56 +/- 0.04 deg | 1.5571 +/- 0.0363 |
+| yaw | -0.687 +/- 0.012 deg | 0.6873 +/- 0.0125 |
+
+The sign difference on alpha, roll and yaw is the legacy writer's, not a disagreement:
+`arc_angles` here returns the magnitudes the original printed with a leading minus. Both
+halves re-derive the groove spacing from their own dispersion -- 401 +/- 8 nm in round 3a
+and 382 +/- 14 nm in round 3b -- matching each round's
+`measured_groove_spacing.txt` exactly, against the 400.0 +/- 0.5 nm assumed.
+
+### Three things this port had to recover, and one it could not
+
+**The script on disk is not the record of the published run.** For OGRE the surviving
+driver matched the saved output. Here it does not, three times over: `als_eff_3a.py`
+carries thirty `#delete` blocks where the saved output reflects twenty-two,
+`als_eff_3b.py` carries six that were never applied at all, and
+`december_2018_taste3b.py` sets `R_correct = 1.05 # 0.85` where 1.05 cannot even
+complete the reduction. All three were edited after the run that produced
+`results/`, which is itself byte-identical to `results_3a_rev23`, the last of that
+round's twenty-one saved revisions and the state the paper was submitted from a week
+later. The campaign files hold what reproduces the saved output, and say where they
+depart from the code.
+
+**`R_correct` had to become a knob.** `radius_correction` under `[efficiency]` scales
+the fitted radius between the arc fit and the order prediction, exactly where
+`R = R_correct*R` sat in the driver. It is 1.0 for OGRE, which is why it did not exist
+before. It is not cosmetic: it decides how many orders are counted as propagating, and
+the original's hand-written per-energy noise lists have one entry per order, so a wrong
+value does not give wrong numbers -- it raises a broadcast error. That makes those lists
+an accidental, and strict, check on it.
+
+**The throw is 233.0 mm, which is nobody's published number.** Table 1 gives
+L = 232.0 +/- 1.4 mm, measured; `als.py` assumed 235.0 +/- 2.0 for every campaign. Both
+fail the order-count check -- 232.0 admits a tenth order at 520-560 eV, 235.0 drops a
+fifteenth at 740-800 eV -- and 233.0 reproduces all eight geometry numbers and all 296
+efficiencies. It sits inside Table 1's uncertainty. Round 3a's efficiencies are
+insensitive to it across 232.1-233.9; round 3b's are not, and pick out 233.0.
+
+**Round 3b's direct beam is lost.** Its configuration module defines no direct-beam
+block, and the `dir_x` its saved alpha and yaw imply, -0.183 +/- 0.005, matches no scan
+surviving in that round. The campaign uses the round's own first direct-beam pair, at 80
+and 100 eV, which gives alpha 19.24 against the saved 19.4 and yaw 0.729 against 0.730 --
+close, and still not it. This costs nothing: `direct_x` feeds only alpha and yaw, and
+neither enters the efficiency reduction. It is recorded because the alpha this campaign
+reports should not be quoted as the mount. The paper's Table 1 is the mount.
+
 ## Adding a campaign
 
-Only OGRE laminar I is ported so far. To add another, translate that sample's original
+Three campaigns are ported. To add another, translate that sample's original
 configuration module into a TOML file and check it against that sample's own `results/`
-directory the same way. Two cautions from doing it once:
+directory the same way. Cautions from doing it three times:
 
 - Those config modules have blocks inside `'''` quotes. Only what was *outside* them was
   active at the time of the saved run, so porting a commented-out energy group will not
@@ -118,5 +183,10 @@ directory the same way. Two cautions from doing it once:
 - Derive the exclusions by diffing against `results/measured/`, not by reading the
   `#delete` comments. See above.
 
-Both are reasons to treat a new campaign as unverified until its own baseline
+- The driver script may have been edited after the run that produced `results/`. Where
+  the two disagree, the saved output is the record and the script is a later draft.
+- Where a sample saved numbered revisions, check which one `results/` equals before
+  treating it as the published state.
+
+All of these are reasons to treat a new campaign as unverified until its own baseline
 reproduces, rather than assuming the translation was faithful.

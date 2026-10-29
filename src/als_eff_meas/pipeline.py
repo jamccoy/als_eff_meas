@@ -142,7 +142,7 @@ def measure_efficiency(campaign: Campaign, geometry: Geometry) -> EfficiencyTabl
         throw=geometry.throw,
         zero_x=geometry.zero_x,
         x_0=geometry.arc.x_center,
-        R=geometry.arc.radius,
+        R=campaign.radius_correction * geometry.arc.radius,
         pos_factor_list=[g.pos_factor for g in groups],
         neg_factor_list=[g.neg_factor for g in groups],
         peak_step=campaign.peak_step,
