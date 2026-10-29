@@ -109,6 +109,11 @@ class Campaign:
     direct_beam_files: list = field(default_factory=list)
     detector_width_mm: object = None
     offset: float = 0.0
+    #: Scales the fitted arc radius between the arc fit and the order
+    #: prediction, where ``R = R_correct*R`` sat in the original drivers. It
+    #: therefore changes how many orders are counted as propagating without
+    #: touching the recovered angles. 1.0 leaves the fit alone.
+    radius_correction: float = 1.0
     exclusions: list = field(default_factory=list)
     plot_orders: list = field(default_factory=list)
 
@@ -191,6 +196,7 @@ def load_campaign(name_or_path) -> Campaign:
         direct_beam_dir=raw.get("direct_beam", {}).get("dir", ""),
         direct_beam_files=list(raw.get("direct_beam", {}).get("files", [])),
         offset=float(raw.get("efficiency", {}).get("offset", 0.0)),
+        radius_correction=float(raw.get("efficiency", {}).get("radius_correction", 1.0)),
         exclusions=[tuple(p) for p in raw.get("efficiency", {}).get("exclude", [])],
         plot_orders=list(raw.get("efficiency", {}).get("plot_orders", [])),
     )

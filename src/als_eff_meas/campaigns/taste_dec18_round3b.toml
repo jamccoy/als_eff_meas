@@ -1,0 +1,192 @@
+name = "taste_dec18_round3b"
+description = """
+TASTE blazed grating prototype, ALS December 2018, the 80-420 eV half of the
+campaign published as McCoy, McEntaffer & Miles, ApJ 891, 114 (2020).
+
+Ported from `december_2018_taste3b.py` plus `als_eff_3b.py`. The paper took
+these measurements after the 440-800 eV half (`taste_dec18_round3a`) and with
+the beamline's triple-mirror order sorter inserted, which the paper notes "is
+expected to slightly shift the position of the beam on the grating, and hence
+the measured parameters listed in Table 1". It does: this round's own arc fit is
+a different mount, not a repeat of Table 1's, and the saved
+<data>/results/ records gamma 2.19 +/- 0.09 and alpha -19.4 +/- 1.2 against
+Table 1's 1.73 +/- 0.03 and 23.4 +/- 0.6. The efficiency reduction here uses
+this round's own fit, because that is what locates the orders in these scans.
+
+One energy-group block was inside triple quotes, i.e. inactive at the time of
+the saved run, and is therefore absent. Two of the module's yaw-scan file
+groups (`yaw_scan_00000[0-7]` and `yaw_scan_00001[0-6]`) are referenced by
+nothing and are likewise absent.
+"""
+
+[paths]
+data = "December2018/Data/TASTE/round_3b"
+figures = "December2018/Figures/TASTE/round_3b"
+
+[instrument]
+# Round 3a's throw, which is the one that reproduces this round's saved
+# *efficiencies*: at 233.0 all 88 of them match to better than 1e-6, and at
+# 234.0 or 235.0 three or four of the weakest do not. One beamtime, one throw.
+#
+# This round's saved `arc_angles.txt` does not agree with that. It wants
+# L = 235.3 (gamma 2.19 needs 235.3, where 233.0 gives 2.2125), and it is
+# written in the four-line format of `arc_angles_check.txt` rather than the
+# five-line format round 3a's has, with no roll. It was therefore written by a
+# different run from the efficiency files beside it, and the efficiencies are
+# the better evidence of what the reduction did. See docs/VERIFICATION.md.
+throw_mm = [233.0, 1.4]
+detector_width_mm = [10.0, 0.01]
+# `als_eff_3b.py:11`. The reduction re-derives 382 +/- 14 nm from the measured
+# dispersion, matching <data>/results/measured_groove_spacing.txt; the 400 nm
+# is the lithographic period and is 1.3 sigma away.
+groove_spacing_nm = [400.0, 0.5]
+peak_step = 15
+
+[arc_fit]
+radius_guess = 50.0
+x_center_guess = 0.0
+y_center_guess = 47.0
+
+# NOT from the original, and not recoverable. `december_2018_taste3b.py`
+# defines no direct-beam block -- round 3a's module is the only one that does.
+# The saved alpha (19.4) and yaw (0.730) imply dir_x = -0.183 +/- 0.005, and no
+# scan surviving in this round has that centroid: the direct beam sits at
+# -0.161 at 80 eV, drifts to +0.088 at 180 eV when the gain and the order sorter
+# changed, and ends at -0.008 at 420 eV. Round 3a's direct beam, by contrast,
+# holds -0.057 to -0.064 across its whole sweep.
+#
+# These two are the direct-beam members of the first pair sequence of the round,
+# at 80 and 100 eV. `direct_x` feeds only `alpha` and `yaw`; the radius, the arc
+# centre and the zero-order position, which are what the efficiency reduction
+# uses, do not depend on it. So this choice does not touch a single efficiency,
+# and the alpha and yaw this campaign reports are indicative only -- take the
+# mount from the paper's Table 1, not from here.
+[direct_beam]
+dir = "energy_scans/data_080-100eV_10_7_gain_OS"
+files = ["taste_xxlow_000000.dat", "taste_xxlow_000002.dat"]
+
+[[yaw_scan]]
+energy_eV = 420
+x_scan = 20
+y_scans = [21, 22, 23, 24, 25, 26, 27]
+meas_x = [-3.6, -1.9, -0.08, 1.75, 3.6, 5.4, 7.24]
+orders = [-2, -1, 0, 1, 2, 3, 4]
+
+[[yaw_scan]]
+energy_eV = 360
+x_scan = 30
+y_scans = [31, 32, 33, 34, 35, 36, 37]
+meas_x = [-4.3, -2.17, -0.1, 2.0, 4.16, 6.3, 8.4]
+orders = [-2, -1, 0, 1, 2, 3, 4]
+
+[[yaw_scan]]
+energy_eV = 120
+x_scan = 40
+y_scans = [41, 42]
+meas_x = [-0.25, 6.2]
+orders = [0, 1]
+
+[[yaw_scan]]
+energy_eV = 180
+x_scan = 50
+y_scans = [51, 52, 53]
+meas_x = [-0.17, 4.05, 8.4]
+orders = [0, 1, 2]
+
+[[yaw_scan]]
+energy_eV = 160
+x_scan = 60
+y_scans = [61, 62, 63]
+meas_x = [-0.22, 4.58, 9.5]
+orders = [0, 1, 2]
+
+[[energy_group]]
+name = "80-100 eV, 10^7 gain, C order sorter at 10 deg"
+dir = "energy_scans/data_080-100eV_10_7_gain_OS"
+energies = { arange = [80, 120, 20] }
+dark_dir = "darks"
+dark_dig = 0
+pos_factor = 1.06
+neg_factor = 1.0
+order_noise = [[0.0, 0.0], [0.0, 0.0]]
+dir_noise = [0.0017, 0.0017]
+
+[[energy_group]]
+name = "120 eV, 10^8 gain, C order sorter at 8 deg"
+dir = "energy_scans/data_120eV_10_8_gain_OS"
+energies = { arange = [120, 140, 20] }
+dark_dir = "darks"
+dark_dig = 1
+pos_factor = 1.06
+neg_factor = 1.0
+order_noise = [[0.0, 0.0]]
+dir_noise = [0.003]
+
+[[energy_group]]
+name = "140-160 eV, 10^7 gain, C order sorter at 8 deg"
+dir = "energy_scans/data_140-160eV_10_7_gain_OS"
+energies = { arange = [140, 180, 20] }
+dark_dir = "darks"
+dark_dig = 0
+pos_factor = 1.06
+neg_factor = 1.0
+order_noise = [[0.0, 0.0], [0.0, 0.0, 0.0]]
+dir_noise = [0.009, 0.0043]
+
+[[energy_group]]
+name = "180-420 eV, 10^9 gain, Ni order sorter at 8 deg"
+dir = "energy_scans/data_180-420eV_10_9_gain_OS"
+energies = { arange = [180, 440, 20] }
+dark_dir = "darks"
+dark_dig = 2
+pos_factor = 1.06
+neg_factor = 1.0
+order_noise = [
+  [0.023, 0.023, 0.023, 0.023],
+  [0.042, 0.028, 0.028, 0.028],
+  [0.034, 0.032, 0.032, 0.032],
+  [0.031, 0.031, 0.031, 0.035, 0.031],
+  [0.034, 0.034, 0.024, 0.19, 0.034],
+  [0.005, 0.005, 0.005, 0.005, 0.005],
+  [0.018, 0.018, 0.028, 0.018, 0.018, 0.018],
+  [0.015, 0.015, 0.015, 0.015, 0.015, 0.015],
+  [0.017, 0.017, 0.017, 0.017, 0.017, 0.017, 0.017],
+  [0.02, 0.02, 0.02, 0.022, 0.02, 0.02, 0.02],
+  [0.042, 0.038, 0.02, 0.028, 0.024, 0.036, 0.034, 0.038],
+  [0.028, 0.03, 0.033, 0.032, 0.039, 0.044, 0.056, 0.053],
+  [0.03, 0.031, 0.033, 0.029, 0.037, 0.037, 0.058, 0.051],
+]
+# Fourteen entries for thirteen energies, copied verbatim from
+# `december_2018_taste3b.py:144`, which built this list as
+# [dir_noise160, dir_noise180, ..., dir_noise420] -- starting one energy too
+# low. Every entry is therefore used one energy above where its name says: 180
+# eV gets 160 eV's 0.0043 instead of 0.016, and 420 eV's own 0.018 is never
+# reached. The list is kept as it ran, because the saved results were produced
+# with it; the shift is at most 0.04 of the direct flux and the affected points
+# reproduce to 1e-8 (docs/VERIFICATION.md).
+dir_noise = [0.0043, 0.016, 0.016, 0.017, 0.06, 0.017, 0.017, 0.017, 0.017, 0.017, 0.017, 0.017, 0.017, 0.018]
+
+[efficiency]
+# `als_eff_3b.py:15`.
+offset = 0.0
+# `als_eff_3b.py:10`: R = R_correct * R. The line reads
+# `R_correct = 1.05 # 0.85`, so the value that *runs* is 1.05 -- and 1.05 does
+# not reproduce: it puts one extra order inside the arc at twelve of the
+# eighteen energies, against the order counts the original's own hand-written
+# noise lists are written for, and the reduction cannot even complete. The
+# commented-out 0.85 gets fifteen of the eighteen right and 0.825 gets all
+# eighteen, as does anything in 0.81-0.825 at this throw. Of those, 0.825 is
+# the one that also reproduces every efficiency; 0.81-0.82 miss order -2 at
+# 340 eV, a point whose flux is five times the dark level and where 0.015 mm of
+# predicted position decides which sample is called the peak. So, as with round
+# 3a's thirty `#delete` blocks, the script on disk post-dates the published
+# run.
+radius_correction = 0.825
+plot_orders = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7]
+
+# No exclusions. `als_eff_3b.py` carries six `#delete` blocks -- n=4 at 300 and
+# 320 eV, n=5 at 380, 400 and 420 eV, n=-1 at 180 eV -- and not one of them was
+# applied in the saved run: every point they name is present in
+# <data>/results/measured/, at the value an unfiltered reduction gives it. The
+# same conclusion as round 3a's thirty blocks, from the other direction.
+exclude = []
