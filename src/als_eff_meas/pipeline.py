@@ -20,7 +20,7 @@ from .geometry import (
     combine_xy_data,
     fit_arc_to_circle,
 )
-from .io import dark_val, gather_file, gather_files, read_scan
+from .io import dark_val, gather_file, gather_files, read_noise_floors, read_scan
 from .stats import list_tot_err
 
 __all__ = ["Geometry", "fit_geometry", "measure_efficiency"]
@@ -112,17 +112,57 @@ def fit_geometry(campaign: Campaign) -> Geometry:
     )
 
 
-def _noise(group: EnergyGroup, attr: str, index: int):
+def _noise(floors: dict, group: EnergyGroup, key: str, index: int):
     """Per-measurement noise floor, defaulting to zero.
 
     A scalar 0.0 broadcasts against however many orders propagate at that
     energy, which is what the original achieved with hand-written lists of
     zeros of the right length.
     """
-    values = getattr(group, attr)
+    values = floors.get(group.name, {}).get(key)
     if values is None:
         return 0.0
     return values[index]
+
+
+def _noise_floors(campaign: Campaign) -> dict:
+    """Load and check the campaign's noise floors, if it names any.
+
+    Every check here raises rather than falling back to zero. A floor that goes
+    missing does not make the reduction fail loudly on its own -- it quietly
+    shifts every efficiency in its group -- so a renamed group, a stale file or
+    a list too short for the energies has to be an error.
+
+    A list *longer* than the energies is allowed, because one of the original
+    drivers built its ``dir_noise`` starting an energy too low and so left a
+    trailing entry that is never reached. That off-by-one is part of what the
+    saved results were produced with; ``taste_dec18_round3b``'s noise file
+    documents it.
+    """
+    if not campaign.noise_file:
+        return {}
+    floors = read_noise_floors(campaign.noise_path, campaign.name)
+    groups = {g.name: g for g in campaign.energy_groups}
+    unknown = sorted(set(floors) - set(groups))
+    if unknown:
+        raise ValueError(
+            f"{campaign.noise_path} has noise floors for {unknown}, which are "
+            f"not energy groups of {campaign.name!r}: {sorted(groups)}"
+        )
+    for name, group in groups.items():
+        if name not in floors:
+            raise ValueError(
+                f"{campaign.noise_path} has no noise floors for energy group "
+                f"{name!r}. Give it explicit zeros if that is what it means."
+            )
+        for key in ("order_noise", "dir_noise"):
+            values = floors[name].get(key)
+            if values is not None and len(values) < len(group.energies):
+                raise ValueError(
+                    f"{campaign.noise_path}: {name!r} has {len(values)} "
+                    f"{key} rows for {len(group.energies)} energies"
+                )
+    return floors
 
 
 def measure_efficiency(campaign: Campaign, geometry: Geometry) -> EfficiencyTable:
@@ -133,6 +173,7 @@ def measure_efficiency(campaign: Campaign, geometry: Geometry) -> EfficiencyTabl
     """
     campaign.check_data_present()
     groups = campaign.energy_groups
+    floors = _noise_floors(campaign)
 
     table = eff_data(
         energy_list=[g.energies for g in groups],
@@ -147,10 +188,10 @@ def measure_efficiency(campaign: Campaign, geometry: Geometry) -> EfficiencyTabl
         neg_factor_list=[g.neg_factor for g in groups],
         peak_step=campaign.peak_step,
         order_noise_list=[
-            [_noise(g, "order_noise", j) for j in range(len(g.energies))] for g in groups
+            [_noise(floors, g, "order_noise", j) for j in range(len(g.energies))] for g in groups
         ],
         dir_noise_list=[
-            [_noise(g, "dir_noise", j) for j in range(len(g.energies))] for g in groups
+            [_noise(floors, g, "dir_noise", j) for j in range(len(g.energies))] for g in groups
         ],
         offset=campaign.offset,
     )

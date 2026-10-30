@@ -108,8 +108,6 @@ dark_dir = "darks"
 dark_dig = 0
 pos_factor = 1.06
 neg_factor = 1.0
-order_noise = [[0.0, 0.0], [0.0, 0.0]]
-dir_noise = [0.0017, 0.0017]
 
 [[energy_group]]
 name = "120 eV, 10^8 gain, C order sorter at 8 deg"
@@ -119,8 +117,6 @@ dark_dir = "darks"
 dark_dig = 1
 pos_factor = 1.06
 neg_factor = 1.0
-order_noise = [[0.0, 0.0]]
-dir_noise = [0.003]
 
 [[energy_group]]
 name = "140-160 eV, 10^7 gain, C order sorter at 8 deg"
@@ -130,8 +126,6 @@ dark_dir = "darks"
 dark_dig = 0
 pos_factor = 1.06
 neg_factor = 1.0
-order_noise = [[0.0, 0.0], [0.0, 0.0, 0.0]]
-dir_noise = [0.009, 0.0043]
 
 [[energy_group]]
 name = "180-420 eV, 10^9 gain, Ni order sorter at 8 deg"
@@ -141,32 +135,16 @@ dark_dir = "darks"
 dark_dig = 2
 pos_factor = 1.06
 neg_factor = 1.0
-order_noise = [
-  [0.023, 0.023, 0.023, 0.023],
-  [0.042, 0.028, 0.028, 0.028],
-  [0.034, 0.032, 0.032, 0.032],
-  [0.031, 0.031, 0.031, 0.035, 0.031],
-  [0.034, 0.034, 0.024, 0.19, 0.034],
-  [0.005, 0.005, 0.005, 0.005, 0.005],
-  [0.018, 0.018, 0.028, 0.018, 0.018, 0.018],
-  [0.015, 0.015, 0.015, 0.015, 0.015, 0.015],
-  [0.017, 0.017, 0.017, 0.017, 0.017, 0.017, 0.017],
-  [0.02, 0.02, 0.02, 0.022, 0.02, 0.02, 0.02],
-  [0.042, 0.038, 0.02, 0.028, 0.024, 0.036, 0.034, 0.038],
-  [0.028, 0.03, 0.033, 0.032, 0.039, 0.044, 0.056, 0.053],
-  [0.03, 0.031, 0.033, 0.029, 0.037, 0.037, 0.058, 0.051],
-]
-# Fourteen entries for thirteen energies, copied verbatim from
-# `december_2018_taste3b.py:144`, which built this list as
-# [dir_noise160, dir_noise180, ..., dir_noise420] -- starting one energy too
-# low. Every entry is therefore used one energy above where its name says: 180
-# eV gets 160 eV's 0.0043 instead of 0.016, and 420 eV's own 0.018 is never
-# reached. The list is kept as it ran, because the saved results were produced
-# with it; the shift is at most 0.04 of the direct flux and the affected points
-# reproduce to 1e-8 (docs/VERIFICATION.md).
-dir_noise = [0.0043, 0.016, 0.016, 0.017, 0.06, 0.017, 0.017, 0.017, 0.017, 0.017, 0.017, 0.017, 0.017, 0.018]
 
 [efficiency]
+# The per-energy noise floors this reduction subtracts were read off the raw
+# scans, which makes them beamline-derived rather than published, so they are
+# not in this repository. They live beside the data, in
+# `<data>/noise.toml`, and this campaign cannot be reduced without them:
+# `read_noise_floors` raises rather than defaulting to zero, because a floor
+# that silently became zero would return different efficiencies from the ones
+# verified here. See docs/DATA.md.
+noise_file = "noise.toml"
 # `als_eff_3b.py:15`.
 offset = 0.0
 # `als_eff_3b.py:10`: R = R_correct * R. The line reads

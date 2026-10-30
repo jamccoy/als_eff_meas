@@ -31,12 +31,47 @@ $ALS_DATA_ROOT/
     │       │   └── dark_nine/
     │       ├── energy_scans/
     │       │   └── data_<range>eV-<gain>_gain/
+    │       ├── noise.toml            per-group noise floors, where a campaign has them
     │       └── results/              outputs; the verification baseline lives here
     └── Figures/
         └── <sample>/
 ```
 
 Directories are never created by the reduction — they must already exist.
+
+## Noise floors
+
+`efficiency.py` subtracts a noise floor from both the order flux and the direct flux:
+
+```
+efficiency = (order_flux - order_noise - dark) / (direct_flux - dir_noise - dark)
+```
+
+Those floors were read off the raw scans by whoever ran the original reduction. That
+makes them **beamline-derived rather than published**, so they belong here and not in
+the repository: a campaign that has them names the file under `[efficiency]`, and
+`noise.toml` sits in that campaign's own data directory, keyed by energy-group name.
+
+```toml
+campaign = "taste_dec18_round3a"      # checked, so a file in the wrong round is caught
+
+[groups."440-560 eV, 10^7 gain"]
+dir_noise = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]     # one per energy
+order_noise = [                                      # one row per energy,
+  [0.0, 0.0, 0.0, 0.005, 0.0, 0.005, 0.008, 0.0, 0.005],  # one entry per order
+]
+```
+
+A campaign that names a `noise_file` **cannot be reduced without it**:
+`read_noise_floors` raises, and so does a group missing from the file, a group the
+campaign does not have, or a list shorter than the group's energies. None of these falls
+back to zero, because a floor that silently became zero would shift every efficiency in
+its group without anything failing. `ogre_laminar_I_oct21` names no file, which is a
+true zero rather than a missing one.
+
+A list *longer* than the energies is allowed: `taste_dec18_round3b` has fourteen
+`dir_noise` entries for thirteen energies because the legacy driver built the list
+starting an energy too low, and it is kept as it ran. That file documents it.
 
 ## File format
 
