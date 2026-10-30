@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import tomllib
+
 import numpy as np
 import pytest
+from endstation.paths import MissingData
 from uncertainties import ufloat
 
 from als_eff_meas import list_campaigns, load_campaign
 from als_eff_meas.centroids import wmean_centroid
+from als_eff_meas.config import _CAMPAIGN_DIR, Campaign, EnergyGroup
 from als_eff_meas.efficiency import EfficiencyTable
 from als_eff_meas.geometry import (
     ArcFit,
@@ -19,7 +23,7 @@ from als_eff_meas.geometry import (
     write_arc_angles,
     write_arc_params,
 )
-from als_eff_meas.io import cxro_to_n_k, read_cxro_table
+from als_eff_meas.io import cxro_to_n_k, read_cxro_table, read_noise_floors
 from als_eff_meas.models import (
     nevot_croce,
     read_pcgrate_xml,
@@ -27,6 +31,7 @@ from als_eff_meas.models import (
     reflectance,
     reflectance_interp,
 )
+from als_eff_meas.pipeline import _noise_floors
 from als_eff_meas.stats import list_tot_err, nominal
 from conftest import parse_results_file
 
@@ -375,3 +380,132 @@ def test_exclude_returns_a_new_table_and_leaves_the_original_alone():
     filtered = t.exclude([(1, 460)])
     assert [round(e) for e in filtered.energy[1]] == [440, 480]
     assert [round(e) for e in t.energy[1]] == [440, 460, 480]
+
+
+# --- Noise floors, which live in the private data tree and not in this repo ---
+
+
+def _noise_campaign(tmp_path, monkeypatch, *groups, noise_file="noise.toml"):
+    """A throwaway campaign whose data dir is ``tmp_path``."""
+    monkeypatch.setenv("ALS_DATA_ROOT", str(tmp_path))
+    return Campaign(
+        name="probe",
+        description="",
+        data_dir=".",
+        figure_dir="",
+        throw_mm=ufloat(233.0, 1.4),
+        groove_spacing_nm=ufloat(400.0, 0.5),
+        peak_step=7,
+        arc_guess=(50.0, 0.0, 47.0),
+        energy_groups=list(groups),
+        noise_file=noise_file,
+    )
+
+
+def _group(name, energies):
+    return EnergyGroup(
+        name=name,
+        directory="scans",
+        energies=list(energies),
+        dark_dir="darks",
+        dark_dig=0,
+    )
+
+
+def _write_noise(tmp_path, body, campaign="probe", name="noise.toml"):
+    path = tmp_path / name
+    path.write_text(f'campaign = "{campaign}"\n{body}', encoding="utf-8")
+    return path
+
+
+def test_no_campaign_file_in_this_repo_carries_noise_values():
+    """The floors are beamline-derived, so none may be committed here.
+
+    They were inline in the TASTE campaign files until they were moved into the
+    data tree; this reads the shipped TOML itself, so it is the test that keeps
+    them out rather than a test of the dataclass that no longer holds them.
+    """
+    paths = sorted(_CAMPAIGN_DIR.glob("*.toml"))
+    assert paths, "no campaign files found"
+    for path in paths:
+        with open(path, "rb") as fh:
+            raw = tomllib.load(fh)
+        for group in raw.get("energy_group", []):
+            assert "order_noise" not in group, path.name
+            assert "dir_noise" not in group, path.name
+        # Belt and braces: the keys must not appear anywhere in the file, even
+        # commented out. Prose about them says "noise floors" instead.
+        text = path.read_text(encoding="utf-8")
+        assert "order_noise" not in text, path.name
+        assert "dir_noise" not in text, path.name
+
+
+def test_the_taste_campaigns_name_a_noise_file_and_ogre_does_not():
+    """OGRE's floors are a true zero; TASTE's are a file that must be present."""
+    assert load_campaign("taste_dec18_round3a").noise_file == "noise.toml"
+    assert load_campaign("taste_dec18_round3b").noise_file == "noise.toml"
+    assert load_campaign("ogre_laminar_I_oct21").noise_file == ""
+
+
+def test_noise_floors_read_back_what_was_written(tmp_path):
+    path = _write_noise(
+        tmp_path,
+        '[groups."a group"]\ndir_noise = [0.1, 0.2]\norder_noise = [[0.0, 0.3], [0.4, 0.0]]\n',
+    )
+    floors = read_noise_floors(path, "probe")
+    assert floors == {"a group": {"dir_noise": [0.1, 0.2], "order_noise": [[0.0, 0.3], [0.4, 0.0]]}}
+
+
+def test_a_noise_file_from_another_campaign_is_refused(tmp_path):
+    """The two TASTE rounds sit in sibling directories with same-named files."""
+    path = _write_noise(tmp_path, "", campaign="taste_dec18_round3b")
+    with pytest.raises(ValueError, match=r"round3b.*not 'taste_dec18_round3a'"):
+        read_noise_floors(path, "taste_dec18_round3a")
+
+
+def test_a_missing_noise_file_names_the_variable_and_the_doc(tmp_path):
+    with pytest.raises(MissingData, match="ALS_DATA_ROOT") as excinfo:
+        read_noise_floors(tmp_path / "absent.toml", "probe")
+    assert "docs/DATA.md" in str(excinfo.value)
+
+
+def test_a_group_absent_from_the_noise_file_is_an_error(tmp_path, monkeypatch):
+    """Not a silent zero: it would shift every efficiency in the group."""
+    campaign = _noise_campaign(tmp_path, monkeypatch, _group("kept", [500]), _group("lost", [600]))
+    _write_noise(tmp_path, '[groups."kept"]\ndir_noise = [0.0]\n')
+    with pytest.raises(ValueError, match="no noise floors for energy group 'lost'"):
+        _noise_floors(campaign)
+
+
+def test_a_noise_group_the_campaign_does_not_have_is_an_error(tmp_path, monkeypatch):
+    """Catches a group renamed on one side only."""
+    campaign = _noise_campaign(tmp_path, monkeypatch, _group("kept", [500]))
+    _write_noise(
+        tmp_path, '[groups."kept"]\ndir_noise = [0.0]\n[groups."stale"]\ndir_noise = [0.0]\n'
+    )
+    with pytest.raises(ValueError, match=r"\['stale'\]"):
+        _noise_floors(campaign)
+
+
+def test_a_noise_list_shorter_than_the_energies_is_an_error(tmp_path, monkeypatch):
+    campaign = _noise_campaign(tmp_path, monkeypatch, _group("g", [500, 520, 540]))
+    _write_noise(tmp_path, '[groups."g"]\ndir_noise = [0.0, 0.0]\n')
+    with pytest.raises(ValueError, match="2 dir_noise rows for 3 energies"):
+        _noise_floors(campaign)
+
+
+def test_a_noise_list_longer_than_the_energies_is_allowed(tmp_path, monkeypatch):
+    """`taste_dec18_round3b` has fourteen entries for thirteen energies.
+
+    The legacy driver built that list starting an energy too low, so the last
+    entry is never reached. It is kept as it ran, because the saved results
+    were produced with it.
+    """
+    campaign = _noise_campaign(tmp_path, monkeypatch, _group("g", [500, 520]))
+    _write_noise(tmp_path, '[groups."g"]\ndir_noise = [0.1, 0.2, 0.3]\n')
+    assert _noise_floors(campaign)["g"]["dir_noise"] == [0.1, 0.2, 0.3]
+
+
+def test_a_campaign_naming_no_noise_file_needs_none(tmp_path, monkeypatch):
+    campaign = _noise_campaign(tmp_path, monkeypatch, _group("g", [500]), noise_file="")
+    assert _noise_floors(campaign) == {}

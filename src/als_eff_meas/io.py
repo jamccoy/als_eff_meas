@@ -9,9 +9,11 @@ depends on the current working directory.
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
 import numpy as np
+from endstation.paths import MissingData
 from uncertainties import unumpy as unp
 
 from .constants import FLUX_REL_ERR, POSITION_ERR_DEG, POSITION_ERR_MM
@@ -22,6 +24,7 @@ __all__ = [
     "gather_file",
     "gather_files",
     "read_cxro_table",
+    "read_noise_floors",
     "read_scan",
 ]
 
@@ -103,6 +106,35 @@ def dark_val(start_dig, darks_dir: Path):
     if n % 2:
         return uflux[order[n // 2]]
     return 0.5 * (uflux[order[n // 2 - 1]] + uflux[order[n // 2]])
+
+
+def read_noise_floors(path: Path, campaign: str) -> dict:
+    """Per-energy-group noise floors, read from the private data tree.
+
+    The floors were read off the raw scans by whoever ran the original
+    reduction, which makes them beamline-derived rather than published, so they
+    are kept beside the data and not in this repository. A campaign that names
+    a ``noise_file`` therefore cannot be reduced without the tree mounted --
+    deliberately, because defaulting to zero would silently return different
+    efficiencies from the ones the campaign was verified against.
+
+    ``campaign`` is checked against the file's own ``campaign`` key, so a file
+    copied into the wrong round is caught rather than quietly applied.
+    """
+    if not path.is_file():
+        raise MissingData(
+            f"noise floors not found: {path}\n"
+            f"Campaign {campaign!r} names this file, and its floors are "
+            "beamline-derived, so they live in the data tree rather than in "
+            "this repository.\nSet ALS_DATA_ROOT to point at it. "
+            "See docs/DATA.md."
+        )
+    with open(path, "rb") as fh:
+        raw = tomllib.load(fh)
+    found = raw.get("campaign")
+    if found != campaign:
+        raise ValueError(f"{path} is the noise file for {found!r}, not {campaign!r}")
+    return {str(name): dict(values) for name, values in raw.get("groups", {}).items()}
 
 
 def read_cxro_table(path: Path):

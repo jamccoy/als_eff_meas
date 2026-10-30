@@ -87,8 +87,6 @@ class EnergyGroup:
     dark_dig: object
     pos_factor: float = 1.0
     neg_factor: float = 1.0
-    order_noise: list | None = None
-    dir_noise: list | None = None
 
 
 @dataclass(frozen=True)
@@ -114,6 +112,12 @@ class Campaign:
     #: therefore changes how many orders are counted as propagating without
     #: touching the recovered angles. 1.0 leaves the fit alone.
     radius_correction: float = 1.0
+    #: Name of the per-group noise-floor file, relative to :attr:`data`. The
+    #: floors were read off the raw scans, so they are beamline-derived and
+    #: live in the private tree rather than in this repository; a campaign
+    #: that names one cannot be reduced without it. Empty means no floors,
+    #: which is a true zero and not a missing file.
+    noise_file: str = ""
     exclusions: list = field(default_factory=list)
     plot_orders: list = field(default_factory=list)
 
@@ -128,6 +132,10 @@ class Campaign:
     @property
     def results_dir(self) -> Path:
         return self.data / "results"
+
+    @property
+    def noise_path(self) -> Path:
+        return self.data / self.noise_file
 
     def group_dir(self, group: EnergyGroup) -> Path:
         return self.data / group.directory
@@ -188,8 +196,6 @@ def load_campaign(name_or_path) -> Campaign:
                 dark_dig=g.get("dark_dig", 1),
                 pos_factor=float(g.get("pos_factor", 1.0)),
                 neg_factor=float(g.get("neg_factor", 1.0)),
-                order_noise=g.get("order_noise"),
-                dir_noise=g.get("dir_noise"),
             )
             for g in raw.get("energy_group", [])
         ],
@@ -197,6 +203,7 @@ def load_campaign(name_or_path) -> Campaign:
         direct_beam_files=list(raw.get("direct_beam", {}).get("files", [])),
         offset=float(raw.get("efficiency", {}).get("offset", 0.0)),
         radius_correction=float(raw.get("efficiency", {}).get("radius_correction", 1.0)),
+        noise_file=str(raw.get("efficiency", {}).get("noise_file", "")),
         exclusions=[tuple(p) for p in raw.get("efficiency", {}).get("exclude", [])],
         plot_orders=list(raw.get("efficiency", {}).get("plot_orders", [])),
     )

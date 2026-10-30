@@ -156,6 +156,16 @@ the original's hand-written per-energy noise lists have one entry per order, so 
 value does not give wrong numbers -- it raises a broadcast error. That makes those lists
 an accidental, and strict, check on it.
 
+**The noise floors are not in this repository.** Those same hand-written lists were
+read off the raw scans, which makes them beamline-derived rather than published, so they
+live in the data tree as `<data>/noise.toml` and the campaign names the file. Moving
+them out changed no number: all 296 points still reproduce to better than 5e-9, which is
+the same worst deviation, at the same two points, as when the lists were inline. What
+the move buys is that nothing in this repository is a measurement; what it costs is that
+neither TASTE round can be reduced without the tree, which was already true of every
+other part of the reduction. `read_noise_floors` raises rather than defaulting to zero,
+and `docs/DATA.md` gives the format.
+
 **The throw is 233.0 mm, which is nobody's published number.** Table 1 gives
 L = 232.0 +/- 1.4 mm, measured; `als.py` assumed 235.0 +/- 2.0 for every campaign. Both
 fail the order-count check -- 232.0 admits a tenth order at 520-560 eV, 235.0 drops a
