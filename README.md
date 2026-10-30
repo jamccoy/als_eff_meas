@@ -79,8 +79,9 @@ export ALS_DATA_ROOT=/path/to/ALS
 
 The expected layout and file format are in [docs/DATA.md](docs/DATA.md); the tree is
 organised as `<Campaign>/Data/<sample>/{yaw_scans,darks,energy_scans,results}`. If
-`ALS_DATA_ROOT` is unset it falls back to `~/Documents/ALS`. With no data present the
-package still imports and the data-independent tests still pass — the rest skip.
+`ALS_DATA_ROOT` is unset it falls back to `~/Documents/Research/ALS`. With no data
+present the package still imports and the data-independent tests still pass — the
+rest skip.
 
 ## Use
 
