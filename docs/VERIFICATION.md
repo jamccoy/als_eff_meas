@@ -4,7 +4,7 @@ The point of this repository is that the reduction was restructured without chan
 science. This is the evidence.
 
 ```bash
-export ALS_DATA_ROOT=~/Documents/ALS
+export ALS_DATA_ROOT=~/Documents/Research/ALS
 .venv/bin/python -m pytest
 ```
 

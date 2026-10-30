@@ -27,13 +27,13 @@ _CAMPAIGN_DIR = Path(__file__).parent / "campaigns"
 
 
 #: Where the beamline tree lives when ``$ALS_DATA_ROOT`` says nothing.
-DEFAULT_DATA_ROOT = "~/Documents/ALS"
+DEFAULT_DATA_ROOT = "~/Documents/Research/ALS"
 
 
 def data_root() -> Path:
     """Root of the private beamline data tree.
 
-    From ``$ALS_DATA_ROOT``, defaulting to ``~/Documents/ALS``. The data is not
+    From ``$ALS_DATA_ROOT``, defaulting to ``~/Documents/Research/ALS``. The data is not
     in this repository and never will be.
 
     Deliberately does not check that the directory exists -- that is

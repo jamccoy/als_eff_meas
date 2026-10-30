@@ -8,7 +8,7 @@ line of defence.
 Point the package at the data with an environment variable:
 
 ```bash
-export ALS_DATA_ROOT=~/Documents/ALS
+export ALS_DATA_ROOT=~/Documents/Research/ALS
 ```
 
 Every campaign path in `src/als_eff_meas/campaigns/*.toml` is relative to it, so no
